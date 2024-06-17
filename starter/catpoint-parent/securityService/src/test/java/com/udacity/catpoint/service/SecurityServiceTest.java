@@ -165,6 +165,20 @@ public class SecurityServiceTest {
         securityService.setArmingStatus(ArmingStatus.ARMED_HOME);
         verify(securityRepository).setAlarmStatus(AlarmStatus.ALARM);
     }
+
+    @Test
+    public void pendingAlarm_allSensorsInactive_returnNoAlarm() {
+        when(securityService.getAlarmStatus()).thenReturn(AlarmStatus.PENDING_ALARM);
+        Sensor doorSensor = new Sensor("door", SensorType.DOOR);
+        doorSensor.setActive(true);
+        Sensor windowSensor = new Sensor("window", SensorType.WINDOW);
+        Set<Sensor> sensorSet = new HashSet<>();
+        sensorSet.add(doorSensor);
+        sensorSet.add(windowSensor);
+        when(securityRepository.getSensors()).thenReturn(sensorSet);
+        securityService.changeSensorActivationStatus(doorSensor,false);
+        verify(securityRepository).setAlarmStatus(AlarmStatus.NO_ALARM);
+    }
     @ParameterizedTest
     @EnumSource(ArmingStatus.class)
     public void setArmingStatus_getsArmingStatus_updateSecurityRepo(ArmingStatus status) {
