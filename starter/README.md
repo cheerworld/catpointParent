@@ -137,3 +137,7 @@ Make sure you have completed all the rubric items [here](https://review.udacity.
 You can submit your project by uploading a zip file or selecting your GitHub repo.
 
 
+I used Udacity GPT, and two Github repos for help and references.
+Github links:
+https://github.com/CSYousef/UdaSecurity
+https://github.com/JimmyNIYONKURU/Home-security-App
