@@ -5,9 +5,12 @@ import com.udacity.catpoint.data.AlarmStatus;
 import com.udacity.catpoint.data.ArmingStatus;
 import com.udacity.catpoint.data.SecurityRepository;
 import com.udacity.catpoint.data.Sensor;
+import com.udacity.catpoint.image.FakeImageService;
 
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -22,6 +25,7 @@ public class SecurityService {
     private FakeImageService imageService;
     private SecurityRepository securityRepository;
     private Set<StatusListener> statusListeners = new HashSet<>();
+    private boolean catDetectedVariable;
 
     public SecurityService(SecurityRepository securityRepository, FakeImageService imageService) {
         this.securityRepository = securityRepository;
@@ -36,8 +40,18 @@ public class SecurityService {
     public void setArmingStatus(ArmingStatus armingStatus) {
         if(armingStatus == ArmingStatus.DISARMED) {
             setAlarmStatus(AlarmStatus.NO_ALARM);
+        } else {
+            List<Sensor> sensors = new ArrayList<>(securityRepository.getSensors());
+            sensors.forEach(sensor -> {
+                sensor.setActive(false);
+                securityRepository.updateSensor(sensor);
+            });
+        }
+        if (armingStatus == ArmingStatus.ARMED_HOME && catDetectedVariable) {
+            setAlarmStatus(AlarmStatus.ALARM);
         }
         securityRepository.setArmingStatus(armingStatus);
+        statusListeners.forEach(StatusListener::sensorStatusChanged);
     }
 
     /**
@@ -46,9 +60,10 @@ public class SecurityService {
      * @param cat True if a cat is detected, otherwise false.
      */
     private void catDetected(Boolean cat) {
+        catDetectedVariable = cat;
         if(cat && getArmingStatus() == ArmingStatus.ARMED_HOME) {
             setAlarmStatus(AlarmStatus.ALARM);
-        } else {
+        } else if(!cat && checkAllSensorsInactive()){
             setAlarmStatus(AlarmStatus.NO_ALARM);
         }
 
@@ -86,16 +101,36 @@ public class SecurityService {
         switch(securityRepository.getAlarmStatus()) {
             case NO_ALARM -> setAlarmStatus(AlarmStatus.PENDING_ALARM);
             case PENDING_ALARM -> setAlarmStatus(AlarmStatus.ALARM);
+            default -> {
+            }
         }
+    }
+    /**
+     * Internal method to check is all sensors are active or not
+     */
+    public boolean checkAllSensorsInactive() {
+        Set<Sensor> sensors = securityRepository.getSensors();
+
+        boolean allInactive = true;
+        for (Sensor sensor : sensors) {
+            if (sensor.getActive()) {
+                allInactive = false;
+                break;
+            }
+        }
+
+        return allInactive;
     }
 
     /**
      * Internal method for updating the alarm status when a sensor has been deactivated
      */
     private void handleSensorDeactivated() {
+        if(!checkAllSensorsInactive()) { return; }
+
         switch(securityRepository.getAlarmStatus()) {
             case PENDING_ALARM -> setAlarmStatus(AlarmStatus.NO_ALARM);
-            case ALARM -> setAlarmStatus(AlarmStatus.PENDING_ALARM);
+            default -> {}
         }
     }
 
@@ -107,7 +142,9 @@ public class SecurityService {
     public void changeSensorActivationStatus(Sensor sensor, Boolean active) {
         if(!sensor.getActive() && active) {
             handleSensorActivated();
-        } else if (sensor.getActive() && !active) {
+        } else if(sensor.getActive() && active) {
+            handleSensorActivated();
+        } else if(sensor.getActive() && !active) {
             handleSensorDeactivated();
         }
         sensor.setActive(active);
