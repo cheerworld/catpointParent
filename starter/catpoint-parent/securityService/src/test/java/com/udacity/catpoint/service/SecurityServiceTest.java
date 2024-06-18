@@ -41,7 +41,7 @@ public class SecurityServiceTest {
             "ARMED_HOME, NO_ALARM, PENDING_ALARM",
             "ARMED_AWAY, PENDING_ALARM, ALARM",
     })
-    public void armedAndSensorActivated_setAlarmStatus(ArmingStatus armed, AlarmStatus initialAlarmStatus, AlarmStatus expectedAlarmStatus) {
+    public void sensorActivated_armedAndNoAlarmOrPendingAlarm_setAlarmStatusToPendingAlarmOrAlarm(ArmingStatus armed, AlarmStatus initialAlarmStatus, AlarmStatus expectedAlarmStatus) {
         // Create a door sensor
         Sensor doorSensor = new Sensor("door", SensorType.DOOR);
 
@@ -83,7 +83,7 @@ public class SecurityServiceTest {
     }
 
     @Test
-    public void checkAllSensorsInactive_allInactiveToFalse() {
+    public void checkAllSensorsInactiveMethod_whenNotAllSensorsAreInactive_methodReturnFalse() {
         Sensor doorSensor = new Sensor("door", SensorType.DOOR);
         doorSensor.setActive(true);
         Sensor windowSensor = new Sensor("window", SensorType.WINDOW);
@@ -107,7 +107,7 @@ public class SecurityServiceTest {
 
     @ParameterizedTest
     @EnumSource(AlarmStatus.class)
-    public void sensorDeactivatedWhileAlreadyInactive_alarmStatusStayTheSame(AlarmStatus alarm) {
+    public void sensorAlreadyInactive_deactivateSensor_returnNoChangesToAlarmStatus(AlarmStatus alarm) {
         Sensor doorSensor = new Sensor("door", SensorType.DOOR);
         when(securityRepository.getAlarmStatus()).thenReturn(alarm);
         securityService.changeSensorActivationStatus(doorSensor, false);
@@ -133,13 +133,13 @@ public class SecurityServiceTest {
     }
 
     @Test
-    public void disarmed_setToNoAlarm() {
+    public void setArmingStatusMethod_disarmed_setToNoAlarm() {
         securityService.setArmingStatus(ArmingStatus.DISARMED);
         verify(securityRepository).setAlarmStatus(AlarmStatus.NO_ALARM);
     }
 
     @Test
-    public void armed_resetAllSensorsToInactive() {
+    public void setArmingStatusMethod_whenInputArmed_resetAllSensorsToInactive() {
         Sensor doorSensor = new Sensor("door", SensorType.DOOR);
         doorSensor.setActive(true);
         Sensor windowSensor = new Sensor("window", SensorType.WINDOW);
